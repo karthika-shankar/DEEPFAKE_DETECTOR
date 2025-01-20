@@ -1,0 +1,128 @@
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+
+/* Global body styles */
+body {
+  background-color: hsl(0, 0%, 0%); /* Black background for the body */
+  font-family: 'Audiowide', sans-serif;
+  color: #fff;
+}
+
+/* Sleek video header container */
+.sleek-video-header {
+  position: relative;
+  width: 100%;
+  height: 100px; /* Adjust header height */
+  overflow: hidden;
+  border: 3px solid hsla(0, 0%, 100%, 0.705);
+  margin: 0; /* Set margin to 0 */
+}
+
+/* Background video */
+.background-video {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%); /* Center the video horizontally */
+  width: 100%; /* Make the video width 100% of the container */
+  height: 100%; /* Make the video height 100% of the container */
+  object-fit: cover; /* Ensures the video covers the container, cropping excess */
+  object-position: 50% 46%; /* Adjust the focus area of the video */
+  z-index: -1;
+}
+
+/* Header content */
+.header-content {
+  display: flex;
+  justify-content: space-between; /* Aligns content at both ends (left and right) */
+  align-items: center; /* Vertically centers items */
+  padding: 0 20px;
+  height: 100%;
+  color: #fff;
+  z-index: 1;
+  position: relative;
+}
+
+/* Left section (logo and heading) */
+.left-section {
+  display: flex;
+  align-items: center;
+  margin: 0; /* Set margin to 0 */
+}
+
+/* Logo container */
+.logo-container {
+  display: flex;
+  align-items: center;
+  margin: 0; /* Set margin to 0 */
+}
+
+.logo {
+  width: 80px; /* Adjust logo size */
+  height: auto;
+  margin-right: 10px; /* Space between logo and text */
+  cursor: pointer;
+}
+
+/* Heading */
+.heading {
+  font-size: 1rem;
+  text-transform: uppercase;
+  margin: 0;
+  padding-left: 10px; /* Adds space between logo and text */
+  text-decoration: none;
+  color: #fff;
+}
+
+/* Search container */
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* Align the search button and input to the right */
+  padding: auto;
+}
+
+/* Search icon */
+.search-icon {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.Search_icon{
+  width: 30px;
+  height: auto;
+}
+
+.search-icon:hover {
+  transform: scale(1.1);
+}
+
+/* Search input */
+.search-input {
+  padding: 5px;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: 3px;
+  outline: none;
+  background-color: #fff;
+  color: #333;
+}
+
+/* Clear button */
+.clear-btn {
+  background-color: hsla(0, 97%, 47%, 0.858);
+  border: none;
+  color: #fff;
+  padding: 5px 10px;
+  font-size: 1rem;
+  border-radius: 3px;
+  cursor: pointer;
+  margin-left: 3px;
+}
+
+.clear-btn:hover {
+  background-color: #ff3333;
+}
