@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import Logo_r from './assets/Logo_r.png'
-import Logo_f from './assets/Logo_f.png'
-import Logo from './assets/logo.png'
+import Logo_r from './assets/Logo_r.png';
+import Logo_f from './assets/Logo_f.png';
+import Logo from './assets/logo.png';
 
 const favicon = document.querySelector("link[rel='icon']");
 
@@ -57,117 +57,132 @@ const Features = ({ searchQuery }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       const file = acceptedFiles[0];
-      // Create preview URL
+      // Generate a Blob URL for the image preview to avoid file system paths
       const previewUrl = URL.createObjectURL(file);
       setImagePreview(previewUrl);
-      
+
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch('/api/analyze/image', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
-      
-  
-      // Check for empty response
+
       const text = await response.text();
       if (!text) {
         throw new Error('Empty response from server');
       }
-  
-      // Try parsing the response
+
       const data = JSON.parse(text);
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'Server error occurred');
       }
-      
+
       setAnalysisResult(data.result);
-      
     } catch (error) {
-    console.error('Upload failed:', error);
-    setError(error.message);
-  } finally {
-    setIsLoading(false);
-  }
-};
-  
-  
-  
-const UploadModal = ({ onClose, acceptedTypes }) => {
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleDrop,
-    accept: selectedFeature.id === 'image' 
-      ? {
-          'image/jpeg': ['.jpg', '.jpeg'],
-          'image/png': ['.png']
-        }
-      : {
-          'video/mp4': ['.mp4'],
-          'video/x-msvideo': ['.avi']
-        }
-  });
+      console.error('Upload failed:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  return (
-    <div className="upload-modal">
-      <div className="modal-content">
-        <h3>Upload For {selectedFeature.title}</h3>
-        <div
-          {...getRootProps({
-            className: `dropzone ${isDragActive ? 'drag-active' : ''}`,
-          })}
-        >
-          <input {...getInputProps()} />
-          {isDragActive ? (
-            <p>Drop the files here...</p>
-          ) : (
-            <p>Drag & drop files here, or click to select files</p>
+  // Effect to update favicon and title dynamically based on analysis result
+  useEffect(() => {
+    if (analysisResult) {
+      if (analysisResult.is_deepfake) {
+        document.title = 'Fake';
+        favicon.href = Logo_f;
+      } else {
+        document.title = 'Real';
+        favicon.href = Logo_r;
+      }
+    } else {
+      document.title = 'Deep Fake Detector';
+      favicon.href = Logo;
+    }
+  }, [analysisResult]);
+
+  const UploadModal = ({ onClose, acceptedTypes }) => {
+    const { getRootProps, getInputProps, isDragActive } = useDropzone({
+      onDrop: handleDrop,
+      accept: selectedFeature.id === 'image'
+        ? {
+            'image/jpeg': ['.jpg', '.jpeg'],
+            'image/png': ['.png'],
+          }
+        : {
+            'video/mp4': ['.mp4'],
+            'video/x-msvideo': ['.avi'],
+          },
+    });
+
+    return (
+      <div className="upload-modal">
+        <div className="modal-content">
+          <h3>Upload For {selectedFeature.title}</h3>
+          <div
+            {...getRootProps({
+              className: `dropzone ${isDragActive ? 'drag-active' : ''}`,
+            })}
+          >
+            <input {...getInputProps()} />
+            {isDragActive ? (
+              <p>Drop the files here...</p>
+            ) : (
+              <p>Drag & drop files here, or click to select files</p>
+            )}
+          </div>
+
+          {isLoading && <p className="loading">Analyzing...</p>}
+          {error && <p className="error">{error}</p>}
+
+          {/* Only show the image preview without file path */}
+          {imagePreview && (
+            <div className="preview">
+              <img src={imagePreview} alt="Preview" />
+            </div>
           )}
-        </div>
-        
-        {isLoading && <p className="loading">Analyzing...</p>}
-        {error && <p className="error">{error}</p>}
-        
-        {imagePreview && (
-          <div className="preview">
-            <img src={imagePreview} alt="Preview" />
-          </div>
-        )}
-        
-        {analysisResult && (
-          <div className="result">
-            <h4>Analysis Result:</h4>
-            {analysisResult.is_deepfake ? <p>The Image Is Fake</p> : <p>The Image Is Real</p>}
-            {analysisResult.is_deepfake ? document.title="Fake" : document.title="Real"}
-            {analysisResult.is_deepfake ? document.title.li : document.title="Real"}
-            {favicon.href = analysisResult.is_deepfake ? Logo_f : Logo_r }
-            <p>Confidence: {analysisResult.is_deepfake ? 
-                            (analysisResult.confidence * 100).toFixed(2) : 
-                            (100 - (analysisResult.confidence * 100)).toFixed(2)}%
-            </p>
-          </div>
-        )}
-        
-        <button 
-          className='Drop-close' 
-          onClick={() => {
-            onClose();
-            setImagePreview(null);
-            URL.revokeObjectURL(imagePreview); // Clean up
-            favicon.href = Logo;
-            document.title="Deep Fake Detector"
-          }}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  );
-};
 
+          {analysisResult && (
+            <div className="result">
+              <h4>Analysis Result:</h4>
+              {analysisResult.is_deepfake ? (
+                  <p style={{ color: 'red' }}>The Image Is Fake</p>
+                ) : (
+                  <p style={{ color: 'green' }}>The Image Is Real</p>
+                )}
+
+              <p>
+                Confidence:{' '}
+                {analysisResult.is_deepfake
+                  ? (analysisResult.confidence * 100).toFixed(2)
+                  : (100 - analysisResult.confidence * 100).toFixed(2)}{' '}
+                %
+              </p>
+            </div>
+          )}
+
+          <button
+            className="Drop-close"
+            onClick={() => {
+              onClose();
+              setImagePreview(null);
+              URL.revokeObjectURL(imagePreview); // Clean up the object URL
+              favicon.href = Logo;
+              document.title = 'Deep Fake Detector';
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   const filteredFeatures = features.filter((feature) =>
     feature.title.toLowerCase().includes(searchQuery.toLowerCase())
