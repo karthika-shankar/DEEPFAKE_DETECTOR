@@ -1,8 +1,24 @@
 import Header from "./Header"
+import Hero from "./Hero"
+import Features from "./Features"
+import Upload from "./Upload"
+import Footer from "./Footer"
+import Body from "./Body"
+import { useState } from 'react';
 
-function App() {
+
+
+const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+
   return(
-    <Header/>
+    <>
+    <Body />
+    <Header onSearch={setSearchQuery} />
+    <Hero/>
+    <Features searchQuery={searchQuery} />
+    <Footer/>
+    </>
   )
 }
 

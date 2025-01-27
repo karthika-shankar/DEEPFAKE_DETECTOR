@@ -1,46 +1,91 @@
 @import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
 
+main {
+  margin-top: 80px;
+}
+
+
 /* Global body styles */
 body {
-  background-color: hsl(0, 0%, 0%); /* Black background for the body */
   font-family: 'Audiowide', sans-serif;
   color: #fff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  min-height: 100vh;  
+  background-color: black;
+  
 }
 
-/* Sleek video header container */
-.sleek-video-header {
-  position: relative;
+body::-webkit-scrollbar {
+  display: none;
+}
+
+
+
+.background-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 100px; /* Adjust header height */
+  height: 100vh;
+  z-index: -1;
   overflow: hidden;
-  border: 3px solid hsla(0, 0%, 100%, 0.705);
-  margin: 0; /* Set margin to 0 */
 }
 
-/* Background video */
+.background-video {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  min-width: 100%;
+  min-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: cover;
+}
+
+.content-overlay {
+  position: relative;
+  z-index: 1;
+}
+
+/* Optional overlay to darken video */
+
+
+.sleek-video-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 99.5%;
+  height: 80px;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  border: 5px solid black;
+  margin: 0;
+}
+
+.header-content {
+  position: relative;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  height: 55%;
+  border: 3px solid hsla(0, 14%, 97%, 0.803);
+}
+
 .background-video {
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%); /* Center the video horizontally */
-  width: 100%; /* Make the video width 100% of the container */
-  height: 100%; /* Make the video height 100% of the container */
-  object-fit: cover; /* Ensures the video covers the container, cropping excess */
-  object-position: 50% 46%; /* Adjust the focus area of the video */
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   z-index: -1;
 }
 
-/* Header content */
-.header-content {
-  display: flex;
-  justify-content: space-between; /* Aligns content at both ends (left and right) */
-  align-items: center; /* Vertically centers items */
-  padding: 0 20px;
-  height: 100%;
-  color: #fff;
-  z-index: 1;
-  position: relative;
-}
 
 /* Left section (logo and heading) */
 .left-section {
@@ -53,7 +98,7 @@ body {
 .logo-container {
   display: flex;
   align-items: center;
-  margin: 0; /* Set margin to 0 */
+
 }
 
 .logo {
@@ -61,8 +106,12 @@ body {
   height: auto;
   margin-right: 10px; /* Space between logo and text */
   cursor: pointer;
+  transition:  0.5s ease;
 }
 
+.logo:hover {
+  transform: scale(0.9);
+}
 /* Heading */
 .heading {
   font-size: 1rem;
@@ -73,43 +122,55 @@ body {
   color: #fff;
 }
 
-/* Search container */
+
+/* Search Container */
 .search-container {
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* Align the search button and input to the right */
-  padding: auto;
+  position: relative;
 }
 
-/* Search icon */
 .search-icon {
   background: none;
   border: none;
-  font-size: 1.2rem;
-  color: #fff;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.Search_icon{
-  width: 30px;
-  height: auto;
-}
-
-.search-icon:hover {
-  transform: scale(1.1);
-}
-
-/* Search input */
-.search-input {
   padding: 5px;
-  font-size: 0.9rem;
-  border: none;
-  border-radius: 3px;
-  outline: none;
-  background-color: #fff;
-  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
+
+.search-icon img {
+  width: 24px;
+  height: 24px;
+}
+
+.search-icon:hover{
+  transform: scale(0.9);
+}
+
+.search-input {
+  width: 0;
+  height: 36px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  border: 1px solid #444;
+  border-radius: 20px;
+  background-color: #2a2a2a;
+  color: #fff;
+  padding: 0 15px;
+  font-size: 16px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #888;
+}
+
+/* When Search is Open */
+.search-container .search-input {
+  width: 250px;
+  opacity: 1;
+}
+
 
 /* Clear button */
 .clear-btn {
@@ -120,9 +181,244 @@ body {
   font-size: 1rem;
   border-radius: 3px;
   cursor: pointer;
-  margin-left: 3px;
+  transition: all 0.3s ease;
+  margin-left: 5px;
 }
 
 .clear-btn:hover {
   background-color: #ff3333;
+  transform: scale(1.1);
+}
+
+.hero-section {
+  margin-top: 80px;
+  padding: 2rem;
+  text-align: center;
+  color: white; /* Ensures text is visible */
+}
+
+.hero-content {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.media-container {
+  position: relative;
+  width: 100%;
+  height: 300px; /* Set a fixed height for the container */
+  overflow: hidden; /* Ensures content stays within bounds */
+  border-radius: 5%; /* Optional: Add rounded corners */
+  border: 3px solid rgb(255, 255, 255);
+}
+
+.hero-image,
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* Ensures proper scaling without distortion */
+}
+
+.hero-video {
+  opacity: 0; /* Initially hide the video */
+ /* Smooth fade-in effect */
+}
+
+.media-container:hover .hero-video {
+  opacity: 1; /* Show video on hover */
+}
+
+.media-container:hover .hero-image {
+  opacity: 0; /* Hide image on hover */
+}
+
+
+
+.features-container {
+  position: relative;
+  padding: 2rem;
+}
+
+.features-section {
+  padding: 4rem 2rem;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 3rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: transform 0.5s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-15px) scale(1.1);
+
+  h3{
+    color: #2563eb;
+  }
+}
+
+
+
+
+/* Upload Modal */
+.upload-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: #1a1a1a;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+}
+
+/* Dropzone */
+.dropzone {
+  border: 2px dashed #666;
+  border-radius: 4px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  margin: 1rem 0;
+}
+
+.dropzone.drag-active {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+/* Image Preview */
+.preview {
+  margin: 1rem 0;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.5rem;
+  border-radius: 8px;
+  width: 80%;  /* Reduced width */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.preview img {
+  max-width: 100%;
+  max-height: 200px;  /* Reduced height */
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+/* Status Messages */
+.loading {
+  color: #60a5fa;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.error {
+  color: #ef4444;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+/* Analysis Results */
+.result {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.result h4 {
+  color: #2563eb;
+  margin-bottom: 0.5rem;
+}
+
+/* Close Button */
+.Drop-close {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 1rem;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.Drop-close:hover {
+  background: #1d4ed8;
+}
+
+.app-footer {
+  background-color: #1a1a1a;
+  padding: 2rem 0;
+  margin-top: 30px;
+  width: 100%;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.footer-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.footer-links a:hover {
+  color: #2563eb;
+}
+
+.footer-content p {
+  color: #666;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .footer-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .footer-content {
+    text-align: center;
+  }
 }
