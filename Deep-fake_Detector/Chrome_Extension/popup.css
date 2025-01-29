@@ -1,0 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Audiowide&display=swap');
+
+
+body {
+    font-family: 'Audiowide', sans-serif;
+    padding: 10px;
+    background-color: black;
+  }
+  
+  #result {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 10px;
+
+  }
+  
+  #confidence {
+    font-size: 18px;
+    color: #646464;
+  }
+  
+  #result.fake {
+    color: red;
+  }
+  
+  #result.real {
+    color: green;
+  }
