@@ -66,10 +66,11 @@ const Features = ({ searchQuery }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/analyze/image', {
+      const response = await fetch('http://localhost:5000/api/analyze/image', {
         method: 'POST',
-        body: formData,
-      });
+        body: formData
+    });
+    
 
       const text = await response.text();
       if (!text) {
@@ -148,7 +149,7 @@ const Features = ({ searchQuery }) => {
             </div>
           )}
 
-          {analysisResult && (
+          {analysisResult && !error && (
             <div className="result">
               <h4>Analysis Result:</h4>
               {analysisResult.is_deepfake ? (
