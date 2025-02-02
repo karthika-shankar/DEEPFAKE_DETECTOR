@@ -6,18 +6,16 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Listen for the context menu item click event
 chrome.contextMenus.onClicked.addListener((info) => {
   if (info.menuItemId === 'checkDeepfake') {
     const imageUrl = info.srcUrl;
 
-    // Send the image URL to the server for deepfake analysis
     fetch('http://localhost:5001/api/analyze/from_url', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ imageUrl: imageUrl }) // Send the image URL in JSON body
+      body: JSON.stringify({ imageUrl: imageUrl })
     })
     .then(response => {
       if (!response.ok) {
@@ -26,17 +24,14 @@ chrome.contextMenus.onClicked.addListener((info) => {
       return response.json();
     })
     .then(data => {
-      // Log the response for debugging
       console.log('Analysis result:', data);
 
-      // Open the popup
       chrome.windows.create({
         url: chrome.runtime.getURL('popup.html'),
         type: 'popup',
         width: 300,
         height: 200
       }, (window) => {
-        // Wait for the popup to load, then send the result
         setTimeout(() => {
           chrome.tabs.sendMessage(window.tabs[0].id, {
             result: data.result,
@@ -48,11 +43,30 @@ chrome.contextMenus.onClicked.addListener((info) => {
               console.log('Message sent to popup:', response);
             }
           });
-        }, 500); // Adjust the delay if needed
+        }, 500);
       });
     })
     .catch(error => {
       console.error('Error:', error);
+
+      chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type: 'popup',
+        width: 300,
+        height: 200
+      }, (window) => {
+        setTimeout(() => {
+          chrome.tabs.sendMessage(window.tabs[0].id, {
+            error: error.message
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              console.error('Error sending message to popup:', chrome.runtime.lastError);
+            } else {
+              console.log('Error message sent to popup:', response);
+            }
+          });
+        }, 500);
+      });
     });
   }
 });
