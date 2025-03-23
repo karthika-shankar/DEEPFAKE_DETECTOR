@@ -29,26 +29,36 @@ const VideoIcon = () => (
   </svg>
 );
 
+const FaceIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="8" cy="10" r="1" />
+    <circle cx="16" cy="10" r="1" />
+    <path d="M9 16c.5 1 1.5 2 3 2s2.5-1 3-2" />
+  </svg>
+);
+
 const Features = ({ searchQuery }) => {
   const [selectedFeature, setSelectedFeature] = useState(null);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const features = [
     {
       id: 'image',
       icon: <ImageIcon />,
       title: 'Image Analysis',
-      description: 'Advanced AI detection for manipulated images',
+      description: 'Detect manipulated images using facial analysis',
       acceptedTypes: 'image/*',
     },
     {
       id: 'video',
       icon: <VideoIcon />,
       title: 'Video Detection',
-      description: 'Frame-by-frame analysis of video content',
+      description: 'Analyze video frames with facial recognition',
       acceptedTypes: 'video/*',
     },
   ];
@@ -57,37 +67,60 @@ const Features = ({ searchQuery }) => {
     try {
       setIsLoading(true);
       setError(null);
+      setUploadProgress(0);
 
       const file = acceptedFiles[0];
-      // Generate a Blob URL for the image preview to avoid file system paths
       const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
+      setMediaPreview(previewUrl);
 
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5000/api/analyze/image', {
-        method: 'POST',
-        body: formData
-    });
-    
+      // Determine the API endpoint based on the selected feature
+      const apiUrl = selectedFeature.id === 'image'
+        ? 'http://localhost:5000/api/analyze/image'
+        : 'http://localhost:5000/api/analyze/video';
 
-      const text = await response.text();
-      if (!text) {
-        throw new Error('Empty response from server');
-      }
+      // Use XMLHttpRequest to track upload progress
+      const xhr = new XMLHttpRequest();
+      
+      // Set up progress tracking
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percentComplete);
+        }
+      });
 
-      const data = JSON.parse(text);
+      // Handle response
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const data = JSON.parse(xhr.responseText);
+          setAnalysisResult(data);
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText);
+            throw new Error(errorData.error || 'Server error occurred');
+          } catch (e) {
+            throw new Error('Server error occurred');
+          }
+        }
+        setIsLoading(false);
+      };
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Server error occurred');
-      }
+      // Handle errors
+      xhr.onerror = function() {
+        setError('Network error occurred');
+        setIsLoading(false);
+      };
 
-      setAnalysisResult(data.result);
+      // Open and send the request
+      xhr.open('POST', apiUrl, true);
+      xhr.send(formData);
+
     } catch (error) {
       console.error('Upload failed:', error);
       setError(error.message);
-    } finally {
       setIsLoading(false);
     }
   };
@@ -95,12 +128,16 @@ const Features = ({ searchQuery }) => {
   // Effect to update favicon and title dynamically based on analysis result
   useEffect(() => {
     if (analysisResult) {
-      if (analysisResult.is_deepfake) {
+      if (analysisResult.is_deepfake === 1) {
         document.title = 'Fake';
         favicon.href = Logo_f;
-      } else {
+      } else if (analysisResult.is_deepfake === 0) {
         document.title = 'Real';
         favicon.href = Logo_r;
+      } else {
+        // No face detected
+        document.title = 'No Face Detected';
+        favicon.href = Logo;
       }
     } else {
       document.title = 'Deep Fake Detector';
@@ -108,7 +145,16 @@ const Features = ({ searchQuery }) => {
     }
   }, [analysisResult]);
 
-  const UploadModal = ({ onClose, acceptedTypes }) => {
+  // Clean up object URL when component unmounts or when a new file is selected
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview);
+      }
+    };
+  }, [mediaPreview]);
+
+  const UploadModal = ({ onClose }) => {
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
       onDrop: handleDrop,
       accept: selectedFeature.id === 'image'
@@ -119,67 +165,126 @@ const Features = ({ searchQuery }) => {
         : {
             'video/mp4': ['.mp4'],
             'video/x-msvideo': ['.avi'],
+            'video/quicktime': ['.mov']
           },
+      maxSize: selectedFeature.id === 'image' ? 10485760 : 104857600, // 10MB for images, 100MB for videos
     });
 
     return (
       <div className="upload-modal">
         <div className="modal-content">
           <h3>Upload For {selectedFeature.title}</h3>
-          <div
-            {...getRootProps({
-              className: `dropzone ${isDragActive ? 'drag-active' : ''}`,
-            })}
-          >
-            <input {...getInputProps()} />
-            {isDragActive ? (
-              <p>Drop the files here...</p>
-            ) : (
-              <p>Drag & drop files here, or click to select files</p>
-            )}
+          <div className="upload-preview-container">
+            <div
+              {...getRootProps({
+                className: `dropzone ${isDragActive ? 'drag-active' : ''}`,
+              })}
+            >
+              <input {...getInputProps()} />
+              <div className="dropzone-content">
+                <FaceIcon />
+                {isDragActive ? (
+                  <p>Drop the files here...</p>
+                ) : (
+                  <>
+                    <p>Drag & drop files here, or click to select files</p>
+                    <small>
+                      {selectedFeature.id === 'image' 
+                        ? 'Supports JPG, JPEG, PNG (max 10MB)' 
+                        : 'Supports MP4, AVI, MOV (max 100MB)'}
+                    </small>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-body">
+              {isLoading && (
+                <div className="loading-container">
+                  <p className="loading">Analyzing{selectedFeature.id === 'video' ? ' frames' : ''}...</p>
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill" 
+                      style={{width: `${uploadProgress}%`}}
+                    ></div>
+                  </div>
+                  <p className="progress-text">{uploadProgress}% uploaded</p>
+                </div>
+              )}
+              
+              {error && <p className="error">{error}</p>}
+
+              {/* Media preview */}
+              {mediaPreview && (
+                <div className="preview">
+                  {selectedFeature.id === 'image' ? (
+                    <img src={mediaPreview} alt="Preview" />
+                  ) : (
+                    <video src={mediaPreview} controls width="100%" />
+                  )}
+                </div>
+              )}
+
+              {analysisResult && !error && (
+                <div className={`result ${analysisResult.is_deepfake === -1 ? 'warning' : ''}`}>
+                  <h4>Analysis Result:</h4>
+                  
+                  {analysisResult.is_deepfake === -1 ? (
+                    <>
+                      <p className="warning-text">
+                        <FaceIcon /> No faces detected
+                      </p>
+                      <p>{analysisResult.message}</p>
+                    </>
+                  ) : analysisResult.is_deepfake === 1 ? (
+                    <>
+                      <p className="fake-text">The {selectedFeature.id === 'image' ? 'Image' : 'Video'} Is Fake</p>
+                      <p>
+                        Confidence: {(analysisResult.confidence * 100).toFixed(2)}%
+                      </p>
+                      {analysisResult.message && <p className="message-text">{analysisResult.message}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <p className="real-text">The {selectedFeature.id === 'image' ? 'Image' : 'Video'} Is Real</p>
+                      <p>
+                        Confidence: {((1 - analysisResult.confidence) * 100).toFixed(2)}%
+                      </p>
+                      {analysisResult.message && <p className="message-text">{analysisResult.message}</p>}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
-          {isLoading && <p className="loading">Analyzing...</p>}
-          {error && <p className="error">{error}</p>}
-
-          {/* Only show the image preview without file path */}
-          {imagePreview && (
-            <div className="preview">
-              <img src={imagePreview} alt="Preview" />
-            </div>
-          )}
-
-          {analysisResult && !error && (
-            <div className="result">
-              <h4>Analysis Result:</h4>
-              {analysisResult.is_deepfake ? (
-                  <p style={{ color: 'red' }}>The Image Is Fake</p>
-                ) : (
-                  <p style={{ color: 'green' }}>The Image Is Real</p>
-                )}
-
-              <p>
-                Confidence:{' '}
-                {analysisResult.is_deepfake
-                  ? (analysisResult.confidence * 100).toFixed(2)
-                  : (100 - analysisResult.confidence * 100).toFixed(2)}{' '}
-                %
-              </p>
-            </div>
-          )}
-
-          <button
-            className="Drop-close"
-            onClick={() => {
-              onClose();
-              setImagePreview(null);
-              URL.revokeObjectURL(imagePreview); // Clean up the object URL
-              favicon.href = Logo;
-              document.title = 'Deep Fake Detector';
-            }}
-          >
-            Close
-          </button>
+          <div className="button-group">
+            <button
+              className="Drop-close"
+              onClick={() => {
+                onClose();
+                setMediaPreview(null);
+                if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+                favicon.href = Logo;
+                document.title = 'Deep Fake Detector';
+              }}
+            >
+              Close
+            </button>
+            {!isLoading && mediaPreview && (
+              <button
+                className="Drop-retry"
+                onClick={() => {
+                  setAnalysisResult(null);
+                  setError(null);
+                  setMediaPreview(null);
+                  if (mediaPreview) URL.revokeObjectURL(mediaPreview);
+                }}
+              >
+                Try Another
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -208,9 +313,45 @@ const Features = ({ searchQuery }) => {
             setAnalysisResult(null);
             setError(null);
           }}
-          acceptedTypes={selectedFeature.acceptedTypes}
         />
       )}
+
+      <style jsx>{`
+        .warning { background-color: #FFF9C4; padding: 15px; border-radius: 4px; }
+        .warning-text { color: #F57C00; display: flex; align-items: center; gap: 8px; }
+        .fake-text { color: #D32F2F; font-weight: bold; }
+        .real-text { color: #388E3C; font-weight: bold; }
+        .message-text { font-size: 0.9em; margin-top: 10px; color: #555; }
+        .loading-container { margin: 15px 0; text-align: center; }
+        .progress-bar { width: 100%; height: 8px; background-color: #e0e0e0; border-radius: 4px; margin: 10px 0; }
+        .progress-fill { height: 100%; background-color: #4CAF50; border-radius: 4px; transition: width 0.3s ease; }
+        .progress-text { font-size: 12px; color: #757575; margin: 0; }
+        .button-group { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .Drop-retry { background-color:rgba(244, 37, 37, 0.88); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; }
+        .Drop-retry:hover { background-color: #1976D2; }
+        .dropzone-content { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .dropzone small { color: #757575; }
+        .modal-body {padding: 10px;}
+        .button-group {display: flex; justify-content: space-between; margin-top: 15px; }
+        .upload-preview-container {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 15px;
+        }
+        .dropzone {
+          flex: 1;
+          margin-right: 10px;
+        }
+        .preview {
+          flex: 1;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        .modal-body {
+          padding: 10px;
+        }
+      `}</style>
     </section>
   );
 };

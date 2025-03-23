@@ -14,153 +14,235 @@ CORS(app)
 
 # Configure upload folder and allowed extensions
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+PROCESSED_FOLDER = 'processed'
+ALLOWED_IMAGE_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi', 'mov'}
 
-# Create uploads folder if it doesn't exist
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+# Create necessary folders if they don't exist
+for folder in [UPLOAD_FOLDER, PROCESSED_FOLDER]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# Load the model
+# Load the models
 try:
-    MODEL = load_model('deepfake_detection_MNV2_model_finetuned.h5')
-    print("Model loaded successfully")
+    IMAGE_MODEL = load_model('deepfake_detection_MNV2_model_2c.h5')
+    VIDEO_MODEL = load_model('deepfake_detector_V.h5')
+    # Load the face detection model
+    FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    print("Models loaded successfully")
 except Exception as e:
-    print(f"Error loading model: {str(e)}")
-    MODEL = None
+    print(f"Error loading models: {str(e)}")
+    IMAGE_MODEL = None
+    VIDEO_MODEL = None
+    FACE_CASCADE = None
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def allowed_file(filename, allowed_extensions):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
-def preprocess_image(image_path):
-    # Open the image
-    img = Image.open(image_path)
-    
-    # Convert RGBA to RGB if necessary
-    if img.mode == 'RGBA':
-        img = img.convert('RGB')
-    
-    # Convert PIL Image to numpy array for OpenCV processing
-    img_array = np.array(img)
-    
-    # Convert RGB to BGR for OpenCV
-    if len(img_array.shape) == 3:
-        img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
-    
-    # Initialize face detector
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+def detect_face(image):
+    """Detect faces in an image and return the coordinates of the largest face."""
+    if isinstance(image, str):  # If image is a file path
+        img = cv2.imread(image)
+    else:  # If image is already a numpy array
+        img = image
     
     # Convert to grayscale for face detection
-    gray = cv2.cvtColor(img_array, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
     # Detect faces
-    faces = face_cascade.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(30, 30)
-    )
+    faces = FACE_CASCADE.detectMultiScale(gray, 1.1, 5)
     
     if len(faces) == 0:
-        raise ValueError("No face detected in the image. Please upload an image containing a clear face.")
+        return None
     
-    # Get the largest face in case of multiple detections
-    largest_face = max(faces, key=lambda x: x[2] * x[3])
-    x, y, w, h = largest_face
+    # Get the largest face
+    largest_face = max(faces, key=lambda rect: rect[2] * rect[3])
+    return largest_face
+
+def preprocess_image(image_path):
+    # Read the image
+    img = cv2.imread(image_path)
     
-    # Add padding around the face (20% of face size)
-    padding_x = int(w * 0.2)
-    padding_y = int(h * 0.2)
+    # Detect face
+    face_rect = detect_face(img)
     
-    # Calculate new coordinates with padding
-    start_x = max(x - padding_x, 0)
-    start_y = max(y - padding_y, 0)
-    end_x = min(x + w + padding_x, img_array.shape[1])
-    end_y = min(y + h + padding_y, img_array.shape[0])
+    if face_rect is None:
+        # If no face detected, use the original image but still resize
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_resized = cv2.resize(img_rgb, (96, 96))
+    else:
+        # Extract and process the face
+        x, y, w, h = face_rect
+        
+        # Add some margin (20% of the face size)
+        margin = int(w * 0.2)
+        x_with_margin = max(0, x - margin)
+        y_with_margin = max(0, y - margin)
+        w_with_margin = min(img.shape[1] - x_with_margin, w + 2 * margin)
+        h_with_margin = min(img.shape[0] - y_with_margin, h + 2 * margin)
+        
+        # Extract face with margin
+        face_img = img[y_with_margin:y_with_margin + h_with_margin, 
+                       x_with_margin:x_with_margin + w_with_margin]
+        
+        # Convert to RGB and resize
+        face_img_rgb = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+        img_resized = cv2.resize(face_img_rgb, (96, 96))
     
-    # Crop the face region with padding
-    face_img = img_array[start_y:end_y, start_x:end_x]
-    
-    # Convert BGR to RGB
-    face_img = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
-    
-    # Resize to model input size
-    face_img = cv2.resize(face_img, (96, 96))
-    
-    # Convert to float and normalize
-    face_img = img_to_array(face_img)
-    face_img = face_img / 255.0
-    
-    # Add batch dimension
-    face_img = np.expand_dims(face_img, axis=0)
-    
-    return face_img
+    # Convert to numpy array and normalize
+    img_array = img_to_array(img_resized) / 255.0
+    return np.expand_dims(img_array, axis=0)
 
 def analyze_image_with_model(image_path):
     try:
-        # Preprocess the image
+        # Check if face is detected
+        img = cv2.imread(image_path)
+        face_rect = detect_face(img)
+        
+        if face_rect is None:
+            return {'is_deepfake': -1, 'confidence': 0, 'message': 'No face detected in the image'}
+        
+        # Preprocess the image with the detected face
         img_array = preprocess_image(image_path)
         
-        # Make prediction using the model
-        prediction = MODEL.predict(img_array)
+        # Make prediction
+        prediction = IMAGE_MODEL.predict(img_array)
+        confidence = float(prediction[0][0])
+        is_deepfake = int(confidence > 0.5)
         
-        # Process prediction result
-        confidence_score = float(prediction[0][0])
-        is_deepfake = confidence_score > 0.5
-        
-        return {
-            'is_deepfake': is_deepfake,
-            'confidence': confidence_score
-        }
-    except ValueError as e:
-        # Pass along face detection errors
-        raise e
+        return {'is_deepfake': is_deepfake, 'confidence': confidence, 'message': 'Face analyzed successfully'}
+    
     except Exception as e:
-        print(f"Error analyzing image: {str(e)}")
-        raise Exception("Failed to analyze the image. Please try again with a different image.")
+        raise Exception(f"Failed to analyze the image: {str(e)}")
+
+def preprocess_video_frame(frame):
+    # Detect face in the frame
+    face_rect = detect_face(frame)
+    
+    if face_rect is None:
+        return None
+    
+    # Extract and process the face
+    x, y, w, h = face_rect
+    
+    # Add some margin (20% of the face size)
+    margin = int(w * 0.2)
+    x_with_margin = max(0, x - margin)
+    y_with_margin = max(0, y - margin)
+    w_with_margin = min(frame.shape[1] - x_with_margin, w + 2 * margin)
+    h_with_margin = min(frame.shape[0] - y_with_margin, h + 2 * margin)
+    
+    # Extract face with margin
+    face_img = frame[y_with_margin:y_with_margin + h_with_margin, 
+                    x_with_margin:x_with_margin + w_with_margin]
+    
+    # Convert to RGB and resize
+    face_img_rgb = cv2.cvtColor(face_img, cv2.COLOR_BGR2RGB)
+    img_resized = cv2.resize(face_img_rgb, (224, 224))  # Resize to VIDEO_MODEL input size
+    
+    # Convert to numpy array and normalize
+    img_array = img_to_array(img_resized) / 255.0
+    return np.expand_dims(img_array, axis=0)
+
+def analyze_video_frame(frame):
+    # Preprocess the frame to extract face
+    processed_frame = preprocess_video_frame(frame)
+    
+    # If no face detected, return None
+    if processed_frame is None:
+        return None
+    
+    # Make prediction
+    prediction = VIDEO_MODEL.predict(processed_frame)
+    return float(prediction[0][0])
+
+def process_video(video_path):
+    cap = cv2.VideoCapture(video_path)
+    deepfake_scores = []
+    frame_count = 0
+    processed_frames = 0
+    sample_rate = 5  # Process every 5th frame to improve performance
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Only process every nth frame
+        if frame_count % sample_rate == 0:
+            score = analyze_video_frame(frame)
+            if score is not None:  # Only count frames where a face was detected
+                deepfake_scores.append(score)
+                processed_frames += 1
+                
+        frame_count += 1
+    
+    cap.release()
+    
+    if processed_frames == 0:
+        return {'is_deepfake': -1, 'confidence': 0, 'message': 'No faces found in the video'}
+    
+    confidence = sum(deepfake_scores) / processed_frames
+    is_deepfake = int(confidence > 0.5)
+    return {
+        'is_deepfake': is_deepfake, 
+        'confidence': confidence, 
+        'message': f'Analyzed {processed_frames} frames with faces out of {frame_count} total frames'
+    }
 
 @app.route('/api/analyze/image', methods=['POST'])
 def analyze_image():
-    try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file part'}), 400
-        
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No selected file'}), 400
-        
-        if file and allowed_file(file.filename):
-            # Save file temporarily
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            
-            # Check if model is loaded
-            if MODEL is None:
-                return jsonify({'error': 'Model not loaded'}), 500
-            
-            try:
-                # Analyze the image
-                result = analyze_image_with_model(filepath)
-                
-                return jsonify({'result': result})
-            except ValueError as e:
-                # Handle face detection errors
-                return jsonify({'error': str(e)}), 400
-            except Exception as e:
-                # Handle other analysis errors
-                return jsonify({'error': str(e)}), 500
-            finally:
-                # Clean up - remove the uploaded file
-                if os.path.exists(filepath):
-                    os.remove(filepath)
-            
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '' or not allowed_file(file.filename, ALLOWED_IMAGE_EXTENSIONS):
         return jsonify({'error': 'Invalid file type. Please upload a JPG or PNG image.'}), 400
-        
+    
+    if IMAGE_MODEL is None or FACE_CASCADE is None:
+        return jsonify({'error': 'Required models not loaded'}), 500
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+    
+    try:
+        result = analyze_image_with_model(filepath)
+        return jsonify(result)
     except Exception as e:
-        print(f"Error processing request: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred. Please try again.'}), 500
+        return jsonify({'error': str(e)}), 500
+    finally:
+        # Clean up the uploaded file
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+@app.route('/api/analyze/video', methods=['POST'])
+def analyze_video():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '' or not allowed_file(file.filename, ALLOWED_VIDEO_EXTENSIONS):
+        return jsonify({'error': 'Invalid file type. Please upload an MP4, AVI, or MOV video.'}), 400
+    
+    if VIDEO_MODEL is None or FACE_CASCADE is None:
+        return jsonify({'error': 'Required models not loaded'}), 500
+    
+    filename = secure_filename(file.filename)
+    video_path = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(video_path)
+    
+    try:
+        result = process_video(video_path)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        # Clean up the uploaded file
+        if os.path.exists(video_path):
+            os.remove(video_path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
