@@ -108,6 +108,7 @@ const Features = ({ searchQuery }) => {
         setIsLoading(false);
       };
 
+
       // Handle errors
       xhr.onerror = function() {
         setError('Network error occurred');

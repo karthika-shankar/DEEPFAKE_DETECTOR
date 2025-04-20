@@ -1,10 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate for navigation
 import logo from './assets/logo.png';
 import Search_icon from './assets/search_icon.png';
+import { signout } from './Auth';
 
 const Header = ({ onSearch }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track login status
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  // Simulate checking login status (replace with actual logic)
+  useEffect(() => {
+    const token = localStorage.getItem('authToken'); // Check if a token exists
+    setIsLoggedIn(!!token); // Set login status based on token presence
+  }, []);
 
   const handleSearch = (e) => {
     const query = e.target.value;
@@ -22,7 +32,17 @@ const Header = ({ onSearch }) => {
         onSearch('');
       }
     }
-    onSearch('')
+  };
+
+  const handleLogout = () => {
+    try {
+      signout();
+      localStorage.removeItem('authToken'); // Remove token from localStorage
+      setIsLoggedIn(false); // Update login status
+      navigate('/'); // Redirect to login page
+    } catch (error) {
+      Alert.alert('Error', 'Failed to sign out');
+    }
   };
 
   return (
@@ -33,6 +53,27 @@ const Header = ({ onSearch }) => {
             <img className="logo" src={logo} alt="LOGO" />
             <h1 className="heading">Deepfake Detector</h1>
           </div>
+        </div>
+        <div className="auth-buttons">
+          {!isLoggedIn ? (
+            <>
+              <button className="login-btn" onClick={() => navigate('/login')}>
+                Login
+              </button>
+              <button className="signup-btn" onClick={() => navigate('/signup')}>
+                Signup
+              </button>
+            </>
+          ) : (
+            <>
+              <button className="profile-btn" onClick={() => navigate('/profile')}>
+                Profile
+              </button>
+              <button className="logout-btn" onClick={handleLogout}>
+                Logout
+              </button>
+            </>
+          )}
         </div>
         <div className="search-container">
           {!isSearchOpen ? (

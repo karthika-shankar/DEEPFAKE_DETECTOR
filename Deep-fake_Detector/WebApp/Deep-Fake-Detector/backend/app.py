@@ -27,8 +27,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Load the models
 try:
-    IMAGE_MODEL = load_model('deepfake_detection_MNV2_model_2c.h5')
-    VIDEO_MODEL = load_model('deepfake_detector_V.h5')
+    IMAGE_MODEL = load_model(r'C:\c_programs\MINI_PR0JECT\DEEPFAKE_DETECTOR\Deep-fake_Detector\models\deepfake_detection_MNV2_model_finetuned.h5')
+    VIDEO_MODEL = load_model(r'C:\c_programs\MINI_PR0JECT\DEEPFAKE_DETECTOR\Deep-fake_Detector\models\deepfake_detector_V.h5')
     # Load the face detection model
     FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     print("Models loaded successfully")
