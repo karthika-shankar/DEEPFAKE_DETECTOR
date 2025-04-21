@@ -29,8 +29,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 try:
     # Dynamically construct the path to the models directory
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current file
-    image_model_path = os.path.join(base_dir, 'models', 'deepfake_detection_MNV2_model_2c.h5')
-    video_model_path = os.path.join(base_dir, 'models', 'deepfake_detector_V.h5')
+    image_model_path = os.path.join(base_dir, 'model', 'deepfake_detection_MNV2_model_2c.h5')
+    video_model_path = os.path.join(base_dir, 'model', 'deepfake_detector_V.h5')
 
     # Load the models
     IMAGE_MODEL = tf.keras.models.load_model(image_model_path)
