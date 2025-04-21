@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
 from werkzeug.utils import secure_filename
-from tensorflow.keras.models import load_model
+import tensorflow as tf
 import numpy as np
 from PIL import Image
 from tensorflow.keras.preprocessing.image import img_to_array
@@ -27,8 +27,14 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Load the models
 try:
-    IMAGE_MODEL = load_model(r'C:\c_programs\MINI_PR0JECT\DEEPFAKE_DETECTOR\Deep-fake_Detector\WebApp\Deep-Fake-Detector\backend\deepfake_detection_MNV2_model_2c copy.h5')
-    VIDEO_MODEL = load_model(r'C:\c_programs\MINI_PR0JECT\DEEPFAKE_DETECTOR\Deep-fake_Detector\WebApp\Deep-Fake-Detector\backend\deepfake_detector_V.h5')
+    # Dynamically construct the path to the models directory
+    base_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory of the current file
+    image_model_path = os.path.join(base_dir, 'models', 'deepfake_detection_MNV2_model_2c.h5')
+    video_model_path = os.path.join(base_dir, 'models', 'deepfake_detector_V.h5')
+
+    # Load the models
+    IMAGE_MODEL = tf.keras.models.load_model(image_model_path)
+    VIDEO_MODEL = tf.keras.models.load_model(video_model_path)
     # Load the face detection model
     FACE_CASCADE = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     print("Models loaded successfully")
@@ -37,6 +43,7 @@ except Exception as e:
     IMAGE_MODEL = None
     VIDEO_MODEL = None
     FACE_CASCADE = None
+
 
 def allowed_file(filename, allowed_extensions):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
