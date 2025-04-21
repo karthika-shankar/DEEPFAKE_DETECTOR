@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import Logo_r from './assets/Logo_r.png';
 import Logo_f from './assets/Logo_f.png';
 import Logo from './assets/logo.png';
+import { supabase } from './supabaseClient';
 
 const favicon = document.querySelector("link[rel='icon']");
 
@@ -68,22 +69,22 @@ const Features = ({ searchQuery }) => {
       setIsLoading(true);
       setError(null);
       setUploadProgress(0);
-
+  
       const file = acceptedFiles[0];
       const previewUrl = URL.createObjectURL(file);
       setMediaPreview(previewUrl);
-
+  
       const formData = new FormData();
       formData.append('file', file);
-
+  
       // Determine the API endpoint based on the selected feature
       const apiUrl = selectedFeature.id === 'image'
         ? 'http://localhost:5000/api/analyze/image'
         : 'http://localhost:5000/api/analyze/video';
-
+  
       // Use XMLHttpRequest to track upload progress
       const xhr = new XMLHttpRequest();
-      
+  
       // Set up progress tracking
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
@@ -91,12 +92,51 @@ const Features = ({ searchQuery }) => {
           setUploadProgress(percentComplete);
         }
       });
-
+  
       // Handle response
-      xhr.onload = function() {
+      xhr.onload = async function () {
         if (xhr.status >= 200 && xhr.status < 300) {
           const data = JSON.parse(xhr.responseText);
           setAnalysisResult(data);
+  
+          // Determine the folder based on the result
+          const folder = data.is_deepfake === 1 ? 'fake' : 'real';
+  
+          // Check if the user is logged in
+          const authToken = localStorage.getItem('authToken');
+          if (authToken) {
+            try {
+              // Upload the media to Supabase storage
+              const filePath = `${folder}/${Date.now()}.${file.name}`;
+              const { error: uploadError } = await supabase.storage
+                .from('storage') // Replace 'storage' with your bucket name
+                .upload(filePath, file);
+  
+              if (uploadError) {
+                throw new Error('Failed to upload media to storage');
+              }
+  
+              // Insert entry into the history table
+              const userId = JSON.parse(atob(authToken.split('.')[1])).sub; // Decode user ID from token
+              const { error: insertError } = await supabase
+                .from('history')
+                .insert({
+                  user_id: userId,
+                  file_path: filePath,
+                  media: selectedFeature.id,
+                  result: data.is_deepfake === 1 ? 'fake' : 'real',
+                });
+  
+              if (insertError) {
+                throw new Error('Failed to insert entry into history table');
+              }
+            } catch (error) {
+              console.error('Error storing media or history:', error);
+              setError('Failed to store media or history.');
+            }
+          } else {
+            console.log('User is not logged in. Media will not be stored.');
+          }
         } else {
           try {
             const errorData = JSON.parse(xhr.responseText);
@@ -107,18 +147,16 @@ const Features = ({ searchQuery }) => {
         }
         setIsLoading(false);
       };
-
-
+  
       // Handle errors
-      xhr.onerror = function() {
+      xhr.onerror = function () {
         setError('Network error occurred');
         setIsLoading(false);
       };
-
+  
       // Open and send the request
       xhr.open('POST', apiUrl, true);
       xhr.send(formData);
-
     } catch (error) {
       console.error('Upload failed:', error);
       setError(error.message);

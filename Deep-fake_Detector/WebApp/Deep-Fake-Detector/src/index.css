@@ -341,6 +341,90 @@ main {
   border: 3px solid rgb(255, 255, 255);
 }
 
+.media-section {
+  margin-top: 20px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-buttons button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #2563eb;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+.filter-buttons button:hover {
+  background-color: #1e4db7;
+}
+
+.media-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.media-item a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.media-item a:hover {
+  text-decoration: underline;
+}
+
+.media-section {
+  margin-top: 20px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-buttons button {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #2563eb;
+  color: white;
+  transition: background-color 0.3s ease;
+}
+
+.filter-buttons button:hover {
+  background-color: #1e4db7;
+}
+
+.media-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.media-item {
+  width: 200px;
+  height: auto;
+  text-align: center;
+}
+
+.media-item img,
+.media-item video {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 .hero-image{
   position: absolute;
   top: 0;
