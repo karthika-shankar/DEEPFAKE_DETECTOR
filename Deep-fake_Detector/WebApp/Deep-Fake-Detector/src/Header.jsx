@@ -39,9 +39,10 @@ const Header = ({ onSearch }) => {
       signout();
       localStorage.removeItem('authToken'); // Remove token from localStorage
       setIsLoggedIn(false); // Update login status
-      navigate('/'); // Redirect to login page
+      navigate('/'); // Redirect to the home or login page
+      window.location.reload(); // Refresh the page to reflect the updated state
     } catch (error) {
-      Alert.alert('Error', 'Failed to sign out');
+      alert('Error', 'Failed to sign out'); // Use alert instead of Alert.alert for web
     }
   };
 

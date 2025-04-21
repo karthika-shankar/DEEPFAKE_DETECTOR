@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
+import Body from './Body';
+import Header from './HeaderB';
+import Footer from './Footer';
 
 const Profile = () => {
   const [user, setUser] = useState(null); // State to store user information
@@ -97,17 +100,21 @@ const Profile = () => {
   };
 
   return (
-    <div className="auth-container">
+    <>
+    <Body />
+    <Header />
+    <div className="profile-container">
       <h2>User Profile</h2>
       <p><strong>Name:</strong> {user.name}</p>
       <p><strong>Email:</strong> {user.email}</p>
 
       <div className="media-section">
-        <h3>Stored Media</h3>
+        <h3>Analysis History</h3>
         <div className="filter-buttons">
           <button onClick={() => handleFilter('real')}>Real</button>
           <button onClick={() => handleFilter('fake')}>Fake</button>
-          <button onClick={() => handleFilter('')}>All</button>
+
+        </div>
         </div>
         <div className="media-list">
           {filteredMedia.length > 0 ? (
@@ -120,8 +127,10 @@ const Profile = () => {
             <p>No media found for the selected filter.</p>
           )}
         </div>
-      </div>
+      
     </div>
+    <Footer />
+    </>
   );
 };
 

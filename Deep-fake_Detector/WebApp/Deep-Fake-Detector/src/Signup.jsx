@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signUpWithEmail } from './Auth';
+import Body from './Body';
+import Header from './HeaderB';
+import Footer from './Footer';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -28,6 +31,9 @@ const Signup = () => {
   };
 
   return (
+    <>
+    <Body />
+    <Header />
     <div className="auth-container">
       <h2>Signup</h2>
       <form onSubmit={handleSubmit}>
@@ -65,6 +71,8 @@ const Signup = () => {
         Already have an account? <a href="/login">Login</a>
       </p>
     </div>
+    <Footer />
+    </>
   );
 };
 
